@@ -13,6 +13,7 @@ const App = () => {
   const contractAddress = "0x393Ff51f47E419e081b1dABC02bAeaE747B1F51A";
   
   
+  
   const checkIfWalletIsConnected = async () => {
     try {
       const { ethereum } = window;
@@ -61,7 +62,8 @@ const App = () => {
     }	
   }
 
-  const wave = async () => {
+  const wave = async (event) => {
+    event.preventDefault();
     try {
       const { ethereum } = window;
 
@@ -73,14 +75,17 @@ const App = () => {
         let count = await waveportalContract.getTotalWaves();
         console.log("Retrieved total wave count...", count.toNumber());
 
-        const waveTxn = await waveportalContract.wave("this is a message", { gasLimit: 300000})
+        const waveTxn = await waveportalContract.wave(message, {gasLimit:300000});	
+        console.log("Mining...", waveTxn.hash)
 
 
         await waveTxn.wait();
         console.log("Mined -- ", waveTxn.hash);
 
         count = await waveportalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
+        console.log("Retrieved total wave count...", count.toNumber())
+        
+              setTotalWaves(count.toNumber());
       } else {
         console.log("Ethereum object doesn't exist!");
       }
@@ -92,7 +97,7 @@ const App = () => {
  const getAllWaves = async () => {
     try {
       if (window.ethereum) {
-        const provider = new ethers.providers.Web3Provider()
+        const provider = new ethers.providers.Web3Provider(window.ethereum)
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, waveportal.abi, signer);
 
@@ -163,6 +168,16 @@ const App = () => {
             Connect Wallet
           </AwesomeButton>
         )}
+{allWaves.map((wave, index) => {	
+            return (	
+              <div key={index} className="answer">	
+                <div className="message">{wave.message}</div>	
+                <div className="from">From: {wave.address}</div>	
+                <div className="time">Waved at: {wave.timestamp.toString()}</div>	
+              </div>	
+            )	
+          })}
+
       </div>
     </div>
   );
