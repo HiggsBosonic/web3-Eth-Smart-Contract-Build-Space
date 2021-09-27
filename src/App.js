@@ -6,9 +6,10 @@ import waveportal from './utils/WavePortal.json';
 const App = () => {
   const [currentAccount, setCurrentAccount] = useState("");
   const [totaleWaves, setTotalWaves] = useState("");
-  const [allWaves, setAllWAves] = useState([]);
+  const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
-  const contractAddress = "0xC9c7f0285Aafc9Ca9012DCf6B73d271E90289a64";
+  const contractAddress = "0x393Ff51f47E419e081b1dABC02bAeaE747B1F51A";
+  
   
   const checkIfWalletIsConnected = async () => {
     try {
@@ -65,7 +66,7 @@ const App = () => {
         let count = await waveportalContract.getTotalWaves();
         console.log("Retrieved total wave count...", count.toNumber());
 
-        const waveTxn = await waveportalContract.wave("this is a message")
+        const waveTxn = await waveportalContract.wave("this is a message", { gasLimit: 300000})
 
 
         await waveTxn.wait();
@@ -80,6 +81,47 @@ const App = () => {
       console.log(error)
     }
   }
+
+ const getAllWaves = async () => {
+    try {
+      if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider()
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, waveportal.abi, signer);
+
+        const waves = await wavePortalContract.getAllWaves();
+
+        let wavesCleaned = [];
+        waves.forEach(wave => {
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp * 1000),
+            message: wave.message
+          });
+        });
+
+        setAllWaves(wavesCleaned);
+
+        /**
+         * Listen in for emitter events!
+         */
+        wavePortalContract.on("NewWave", (from, timestamp, message) => {
+          console.log("NewWave", from, timestamp, message);
+
+          setAllWaves(prevState => [...prevState, {
+            address: from,
+            timestamp: new Date(timestamp * 1000),
+            message: message
+          }]);
+        });
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
 
   useEffect(() => {
     checkIfWalletIsConnected();
