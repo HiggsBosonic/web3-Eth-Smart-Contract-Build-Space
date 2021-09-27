@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import './App.css';
 import waveportal from './utils/WavePortal.json';
+import { AwesomeButton } from "react-awesome-button";
+import "react-awesome-button/dist/styles.css";
 
 const App = () => {
   const [currentAccount, setCurrentAccount] = useState("");
-  const [totaleWaves, setTotalWaves] = useState("");
+  const [totalWaves, setTotalWaves] = useState("");
   const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
   const contractAddress = "0x393Ff51f47E419e081b1dABC02bAeaE747B1F51A";
@@ -36,6 +38,10 @@ const App = () => {
     }
   }
 
+   useEffect(() => {	
+    checkIfWalletIsConnected();	
+  }, [])
+
   const connectWallet = async () => {
     try {
       const { ethereum } = window;
@@ -47,11 +53,12 @@ const App = () => {
 
       const accounts = await ethereum.request({ method: "eth_requestAccounts" });
 
-      console.log("Connected", accounts[0]);
-      setCurrentAccount(accounts[0]); 
-    } catch (error) {
-      console.log(error)
-    }
+      	    console.log("connected", accounts[0]);	
+    setCurrentAccount(accounts[0]);	
+    getAllWaves();	
+    } catch(error) {	
+      console.log(error)	
+    }	
   }
 
   const wave = async () => {
@@ -147,14 +154,14 @@ const App = () => {
               value={message}	
               onChange={(e) => setMessage(e.target.value)}	
             ></textarea>	
-          <button className="waveButton" disabled={!currentAccount}>Drop a Hammer</button>	
+          	
         </form>	
-
+<AwesomeButton type="primary" size="medium" className="waveButton" disabled={!currentAccount}>Drop a Hammer</AwesomeButton>
 
         {!currentAccount && (
-          <button className="waveButton" onClick={connectWallet}>
+          <AwesomeButton type="primary" size="small" className="waveButton" onClick={connectWallet}>
             Connect Wallet
-          </button>
+          </AwesomeButton>
         )}
       </div>
     </div>
