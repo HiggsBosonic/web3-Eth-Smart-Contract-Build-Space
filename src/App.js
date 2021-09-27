@@ -2,15 +2,44 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import './App.css';
 import waveportal from './utils/WavePortal.json';
-import { AwesomeButton } from "react-awesome-button";
-import "react-awesome-button/dist/styles.css";
+import {ChakraProvider,Divider, extendTheme,Center,Text, Input, Button, StylesProvider, Box,List, ListItem} from '@chakra-ui/react';
+import StarfieldAnimation from 'react-starfield-animation'
+
+const theme = extendTheme({
+  config: {
+    useSystemColorMode: false,
+    initialColorMode: "dark"
+  }
+});
+
+const Card = ({address, timestamp, message}) => {
+  
+
+
+  return (
+    <ListItem mt={4} mb={4}>
+      <Box as="section" borderWidth="1px" borderRadius="lg" px="6" py="1">
+      <Box as="dl">
+        <Box color="blue.200" as="dt" mt={2} mb={2}>
+        Address <Divider orientation="vertical" /> {address}
+        </Box>
+        <Divider/>
+        <Box color="blue.200" as="dt" mt={2} mb={2}>Timestamp <Divider orientation="vertical" /> {timestamp}</Box>
+        <Divider/>
+        <Box color="blue.200" as="dt" mt={2} mb={2}>Message <Divider orientation="vertical" /> {message}</Box>
+        </Box>
+      </Box>
+    </ListItem>
+  );
+}
 
 const App = () => {
   const [currentAccount, setCurrentAccount] = useState("");
-  const [totalWaves, setTotalWaves] = useState("");
   const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
-  const contractAddress = "0x393Ff51f47E419e081b1dABC02bAeaE747B1F51A";
+  const contractAddress = "0x2dC6FA0e25758A111C08Da13B6815ac5249Ad97e";
+  const [tnxStatus, setTnxStatus] = useState('');
+  const [inputData, setInputData] = useState('');
   
   
   
@@ -31,6 +60,7 @@ const App = () => {
         const account = accounts[0];
         console.log("Found an authorized account:", account);
         setCurrentAccount(account)
+        getAllWaves();
       } else {
         console.log("No authorized account found")
       }
@@ -38,10 +68,6 @@ const App = () => {
       console.log(error);
     }
   }
-
-   useEffect(() => {	
-    checkIfWalletIsConnected();	
-  }, [])
 
   const connectWallet = async () => {
     try {
@@ -55,46 +81,13 @@ const App = () => {
       const accounts = await ethereum.request({ method: "eth_requestAccounts" });
 
       	    console.log("connected", accounts[0]);	
-    setCurrentAccount(accounts[0]);	
-    getAllWaves();	
+    setCurrentAccount(accounts[0]);
     } catch(error) {	
       console.log(error)	
     }	
   }
 
-  const wave = async (event) => {
-    event.preventDefault();
-    try {
-      const { ethereum } = window;
-
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum);
-        const signer = provider.getSigner();
-        const waveportalContract = new ethers.Contract(contractAddress, waveportal.abi, signer);
-
-        let count = await waveportalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-
-        const waveTxn = await waveportalContract.wave(message, {gasLimit:300000});	
-        console.log("Mining...", waveTxn.hash)
-
-
-        await waveTxn.wait();
-        console.log("Mined -- ", waveTxn.hash);
-
-        count = await waveportalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber())
-        
-              setTotalWaves(count.toNumber());
-      } else {
-        console.log("Ethereum object doesn't exist!");
-      }
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
- const getAllWaves = async () => {
+const getAllWaves = async () => {
     try {
       if (window.ethereum) {
         const provider = new ethers.providers.Web3Provider(window.ethereum)
@@ -106,7 +99,7 @@ const App = () => {
         let wavesCleaned = [];
         waves.forEach(wave => {
           wavesCleaned.push({
-            address: wave.waver,
+            address: wave.writer,
             timestamp: new Date(wave.timestamp * 1000),
             message: wave.message
           });
@@ -120,11 +113,11 @@ const App = () => {
         wavePortalContract.on("NewWave", (from, timestamp, message) => {
           console.log("NewWave", from, timestamp, message);
 
-          setAllWaves(prevState => [...prevState, {
+          setAllWaves(prevState => [{
             address: from,
             timestamp: new Date(timestamp * 1000),
             message: message
-          }]);
+          },...prevState]);
         });
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -132,14 +125,58 @@ const App = () => {
     } catch (error) {
       console.log(error);
     }
+}
+
+
+  const wave = async () => {
+    try {
+      const { ethereum } = window;
+
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const waveportalContract = new ethers.Contract(contractAddress, waveportal.abi, signer);
+
+        let count = await waveportalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());
+        setTnxStatus("Throw Hammer")
+
+        const waveTxn = await waveportalContract.wave(inputData, {gasLimit:300000});	
+        setTnxStatus("Hammer Thrown")
+        console.log("Mining...", waveTxn.hash)
+
+
+        await waveTxn.wait();
+        console.log("Mined -- ", waveTxn.hash);
+
+        count = await waveportalContract.getTotalWaves();
+        console.log("Retrieved total throw count...", count.toNumber())
+        setInputData("");
+
+      } else {
+        console.log("Ethereum object doesn't exist!");
+      }
+    } catch (error) {
+      console.log(error)
+      setTnxStatus("Failed")
+    }
   }
 
-
-  useEffect(() => {
-    checkIfWalletIsConnected();
-  }, [])
+      const handleChange = (event) => {
+      setInputData(event.target.value);
+    }
   
+
+  useEffect(()=> {
+    checkIfWalletIsConnected();
+  },[])
+
+ 
   return (
+
+    <ChakraProvider theme={theme}>
+    <StylesProvider>
+    
     <div className="mainContainer">
       <div className="dataContainer">
         <div className="header">
@@ -147,39 +184,53 @@ const App = () => {
         </div>
 
         <div className="bio">
-        I recently had a son, we named him Thor, drop a hammer for the young lad!
-        <br />
-        <br />
-          I am Nat, trying to get back into building things. Previously: Athlete, Web Dev, Video game dev, Marketer, Operations Director, now Sys Admin. I tend to wander and have found my way to web3. Cheers!
+        <h2>
+        I recently had a son, we named him Thor, throw a hammer for the young lad!
+        </h2>
         </div>
 
-<form onSubmit={wave} className="answer-form">	
-            <textarea	
-              placeholder="Drop a Hammer for Thor"	
-              value={message}	
-              onChange={(e) => setMessage(e.target.value)}	
-            ></textarea>	
-          	
-        </form>	
-<AwesomeButton type="primary" size="medium" className="waveButton" disabled={!currentAccount}>Drop a Hammer</AwesomeButton>
+<Input onChange={handleChange} value={inputData} placeholder="Where will you throw your hammer to?" 
+        size="lg" mt={5} borderColor="purple.300"
+        ></Input>
 
-        {!currentAccount && (
-          <AwesomeButton type="primary" size="small" className="waveButton" onClick={connectWallet}>
-            Connect Wallet
-          </AwesomeButton>
-        )}
-{allWaves.map((wave, index) => {	
-            return (	
-              <div key={index} className="answer">	
-                <div className="message">{wave.message}</div>	
-                <div className="from">From: {wave.address}</div>	
-                <div className="time">Waved at: {wave.timestamp.toString()}</div>	
-              </div>	
-            )	
+        <Button color="purple.200" className="hammerButton" onClick={wave}>
+          Throw your Hammer!
+        </Button>	
+
+         {!currentAccount ? (
+          <Button className="hammerButton" color="purple.200" onClick={connectWallet}>
+          Connect Wallet
+          </Button>
+        ): (
+              <div className="status"><div>Status: {tnxStatus ? tnxStatus : "Hammer not thrown yet"}</div>
+              <div>A total of {allWaves.length} hammers have been thrown into the cosmos.</div>
+            </div>)}
+
+        
+          {allWaves.map((waves,index) => {
+
+          return (
+          <Card key={index} address={wave.address} timestamp={wave.timestamp.toString()} message={wave.message}/>
+          )
           })}
-
+        
+            <StarfieldAnimation
+          numParticles={400}
+          style={{
+            position: 'absolute',
+            zIndex: -1,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+        />
       </div>
     </div>
+          
+    </StylesProvider>
+    </ChakraProvider>
+    
   );
 }
 
