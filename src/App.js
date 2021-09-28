@@ -13,34 +13,6 @@ export default function App() {
   // address of my WavePortal deployed on Rinkeby
   const contractAddress = "0x2dC6FA0e25758A111C08Da13B6815ac5249Ad97e";
 
-  const getAllWaves = async () => {
-    try {
-      if (window.ethereum) {
-        const provider = new ethers.providers.Web3Provider
-        const signer = provider.getSigner();
-        const wavePortalContract = new ethers.Contract(contractAddress, contractABI.abi, signer);
-
-        const waves = await wavePortalContract.getAllWaves();
-
-        let wavesCleaned = [];
-        waves.forEach(wave => {
-          wavesCleaned.push({
-            address: wave.waver,
-            timestamp: new Date(wave.timestamp * 1000),
-            message: wave.message
-          });
-        });
-
-        setAllWaves(wavesCleaned);
-      } else {
-        console.log("Ethereum object doesn't exist!")
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-
     const checkIfWalletIsConnected = async () => {
     try {
       const { ethereum } = window;
@@ -101,7 +73,10 @@ export default function App() {
         const provider = new ethers.providers.Web3Provider(ethereum);
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, contractABI.abi, signer);
-       
+
+        /*
+        * Execute the actual wave from your smart contract
+        */
         const waveTxn = await wavePortalContract.wave(messageInput);
         console.log("Mining...", waveTxn.hash);
         await waveTxn.wait();
@@ -140,6 +115,40 @@ export default function App() {
       setLoading(false);
     } catch (error) {
       console.log(error)
+    }
+  }
+
+  const getAllWaves = async () => {
+    try {
+      setLoading(true);
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI.abi, signer);
+
+        const waves = await wavePortalContract.getAllWaves();
+
+        let wavesCleaned = [];
+        waves.forEach(wave => {
+          let waveTime = new Date(wave.timestamp * 1000);
+          let waveTimeFormatted = moment(waveTime).format('llll');
+
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: waveTimeFormatted,
+            message: wave.message
+          });
+        });
+
+        setAllWaves(wavesCleaned);
+
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
     }
   }
 
